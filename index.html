@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Research Queue">
+<title>Research Queue</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#ffffff;--bg2:#f5f5f3;--bg3:#eeede9;
+    --text:#1a1a1a;--text2:#666;--text3:#aaa;
+    --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.2);
+    --green-bg:#E1F5EE;--green:#0F6E56;--green-border:#9FE1CB;
+    --blue-bg:#E6F1FB;--blue:#185FA5;
+    --purple-bg:#EEEDFE;--purple:#534AB7;
+    --red-bg:#FCEBEB;--red:#A32D2D;--red-border:#F7C1C1;
+    --amber-bg:#FAEEDA;--amber:#854F0B;
+    --radius:10px;--radius-sm:7px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;
+      --text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;
+      --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+      --green-bg:#0d3326;--green:#5DCAA5;--green-border:#0F6E56;
+      --blue-bg:#0d2340;--blue:#85B7EB;
+      --purple-bg:#1e1a40;--purple:#AFA9EC;
+      --red-bg:#3b1515;--red:#F09595;--red-border:#A32D2D;
+      --amber-bg:#3b2a0d;--amber:#EF9F27;
+    }
+  }
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:16px;line-height:1.5}
+  .app{max-width:600px;margin:0 auto;padding:0 0 80px;min-height:100vh}
+  header{padding:52px 20px 16px;border-bottom:0.5px solid var(--border)}
+  header h1{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:var(--text)}
+  header p{font-size:13px;color:var(--text2);margin-top:2px}
+  .sync-bar{display:flex;align-items:center;gap:7px;padding:10px 20px;background:var(--bg2);border-bottom:0.5px solid var(--border);font-size:12px;color:var(--text2)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;transition:background 0.3s}
+  .dot.syncing{background:var(--amber);animation:pulse 1s infinite}
+  .dot.error{background:var(--red)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+  .tabs{display:flex;padding:12px 20px;gap:6px;border-bottom:0.5px solid var(--border);background:var(--bg)}
+  .tab{flex:1;padding:8px 6px;font-size:13px;font-weight:500;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all 0.15s}
+  .tab.active{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+  .section{display:none;padding:20px}
+  .section.active{display:block}
+  .card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+  .field-label{font-size:11px;font-weight:600;letter-spacing:0.4px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+  input[type=text]{width:100%;font-size:16px;padding:10px 0;border:none;border-bottom:0.5px solid var(--border);background:transparent;color:var(--text);font-family:inherit;outline:none;margin-bottom:16px;-webkit-appearance:none}
+  input[type=text]::placeholder{color:var(--text3)}
+  textarea{width:100%;font-size:14px;padding:10px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;outline:none;resize:none;margin-bottom:16px;line-height:1.5;-webkit-appearance:none}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  select{font-size:13px;padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;outline:none;-webkit-appearance:none;flex:1;min-width:120px}
+  .priority-toggle{display:flex;gap:5px}
+  .ptag{padding:7px 14px;font-size:12px;font-weight:500;border:0.5px solid var(--border);border-radius:20px;cursor:pointer;color:var(--text2);background:transparent;font-family:inherit}
+  .ptag.sel-normal{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+  .ptag.sel-urgent{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
+  .btn-add{padding:9px 20px;font-size:14px;font-weight:600;border:none;border-radius:var(--radius-sm);background:var(--text);color:var(--bg);cursor:pointer;font-family:inherit;flex-shrink:0}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+  .stat{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center}
+  .stat-num{font-size:26px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
+  .stat-label{font-size:11px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.3px;font-weight:500}
+  .filters{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;-ms-overflow-style:none;scrollbar-width:none}
+  .filters::-webkit-scrollbar{display:none}
+  .fbtn{padding:6px 14px;font-size:12px;font-weight:500;border:0.5px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+  .fbtn.active{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+  .item{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+  .item.urgent-item{border-left:3px solid var(--red)}
+  .item-body{flex:1;min-width:0}
+  .item-title{font-size:15px;font-weight:500;color:var(--text);margin-bottom:5px;word-break:break-word;line-height:1.4}
+  .item-note{font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.5;word-break:break-word}
+  .item-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.2px}
+  .b-health{background:var(--green-bg);color:var(--green)}
+  .b-business{background:var(--blue-bg);color:var(--blue)}
+  .b-personal{background:var(--purple-bg);color:var(--purple)}
+  .b-urgent{background:var(--red-bg);color:var(--red)}
+  .item-date{font-size:11px;color:var(--text3)}
+  .item-actions{display:flex;gap:6px;flex-shrink:0}
+  .icon-btn{width:32px;height:32px;border:0.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text2)}
+  .icon-btn:active{background:var(--bg3)}
+  .empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:14px;line-height:1.6}
+  .week-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .week-title{font-size:15px;font-weight:600;color:var(--text)}
+  .week-meta{font-size:12px;color:var(--text2)}
+  .week-item{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;display:flex;gap:10px;align-items:center}
+  .week-item.urgent-item{border-left:3px solid var(--red)}
+  .week-item-body{flex:1;min-width:0}
+  .week-item-title{font-size:15px;font-weight:500;color:var(--text);margin-bottom:5px;word-break:break-word}
+  .done-btn{padding:7px 14px;font-size:12px;font-weight:600;border:0.5px solid var(--border);border-radius:20px;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;flex-shrink:0}
+  .done-btn:active{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);border-radius:var(--radius-sm);padding:10px 20px;font-size:13px;font-weight:500;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:99;white-space:nowrap}
+  .toast.show{opacity:1}
+  .auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:40px 20px;text-align:center;gap:16px}
+  .auth-screen h2{font-size:22px;font-weight:700;color:var(--text)}
+  .auth-screen p{font-size:14px;color:var(--text2);max-width:300px;line-height:1.6}
+  .auth-btn{padding:14px 28px;font-size:15px;font-weight:600;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);cursor:pointer;font-family:inherit}
+  .auth-input{width:100%;max-width:340px;font-size:14px;padding:12px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg2);color:var(--text);font-family:inherit;outline:none;text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Research Queue</h1>
+    <p>Capture now. Explore later.</p>
+  </header>
+
+  <div id="auth-view" style="display:none">
+    <div class="auth-screen">
+      <h2>Connect Google Drive</h2>
+      <p>Paste your Google Drive API token to sync your queue across all devices.</p>
+      <input class="auth-input" type="password" id="token-input" placeholder="Paste access token...">
+      <button class="auth-btn" onclick="saveToken()">Connect</button>
+      <p style="font-size:12px;color:var(--text3)">Your token is stored locally on this device only.</p>
+    </div>
+  </div>
+
+  <div id="main-view" style="display:none">
+    <div class="sync-bar">
+      <div class="dot" id="sync-dot"></div>
+      <span id="sync-status">Connecting...</span>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('capture')">Capture</button>
+      <button class="tab" onclick="switchTab('queue')">Queue</button>
+      <button class="tab" onclick="switchTab('week')">This week</button>
+    </div>
+
+    <div id="capture" class="section active">
+      <div class="card">
+        <div class="field-label">Topic or question</div>
+        <input type="text" id="cap-title" placeholder="What do you want to research?" onkeydown="if(event.key==='Enter')document.getElementById('cap-note').focus()">
+        <div class="field-label">Notes (optional)</div>
+        <textarea id="cap-note" rows="2" placeholder="Context, links, why it matters..."></textarea>
+        <div class="controls">
+          <select id="cap-cat">
+            <option value="health">Health & Wellness</option>
+            <option value="business">Business</option>
+            <option value="personal">Personal</option>
+          </select>
+          <div class="priority-toggle">
+            <button class="ptag" id="pt-normal" onclick="setPriority('normal')">Normal</button>
+            <button class="ptag" id="pt-urgent" onclick="setPriority('urgent')">Urgent</button>
+          </div>
+          <button class="btn-add" onclick="addItem()">Add</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-num" id="s-total">—</div><div class="stat-label">In queue</div></div>
+        <div class="stat"><div class="stat-num" id="s-urgent">—</div><div class="stat-label">Urgent</div></div>
+        <div class="stat"><div class="stat-num" id="s-done">—</div><div class="stat-label">Done this week</div></div>
+      </div>
+    </div>
+
+    <div id="queue" class="section">
+      <div class="filters">
+        <button class="fbtn active" onclick="setFilter('all',this)">All</button>
+        <button class="fbtn" onclick="setFilter('urgent',this)">Urgent</button>
+        <button class="fbtn" onclick="setFilter('health',this)">Health & Wellness</button>
+        <button class="fbtn" onclick="setFilter('business',this)">Business</button>
+        <button class="fbtn" onclick="setFilter('personal',this)">Personal</button>
+      </div>
+      <div id="queue-list"></div>
+    </div>
+
+    <div id="week" class="section">
+      <div class="week-hdr">
+        <div class="week-title">This week's session</div>
+        <div class="week-meta" id="week-meta"></div>
+      </div>
+      <div id="week-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FILE_NAME = 'research_queue_data.json';
+let items = [], done = [], priority = 'normal', filter = 'all';
+let fileId = null, saveTimeout = null, ready = false;
+let accessToken = localStorage.getItem('rq_token') || '';
+
+function init() {
+  if (accessToken) {
+    document.getElementById('auth-view').style.display = 'none';
+    document.getElementById('main-view').style.display = 'block';
+    findOrCreateFile();
+  } else {
+    document.getElementById('auth-view').style.display = 'block';
+    document.getElementById('main-view').style.display = 'none';
+  }
+}
+
+function saveToken() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) return;
+  accessToken = t;
+  localStorage.setItem('rq_token', t);
+  document.getElementById('auth-view').style.display = 'none';
+  document.getElementById('main-view').style.display = 'block';
+  findOrCreateFile();
+}
+
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('sync-dot');
+  const status = document.getElementById('sync-status');
+  dot.className = 'dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+  status.textContent = msg;
+}
+
+async function driveRequest(method, path, body, params) {
+  const url = new URL('https://www.googleapis.com' + path);
+  if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  const opts = {method, headers: {Authorization: 'Bearer ' + accessToken}};
+  if (body && typeof body === 'string') {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = body;
+  } else if (body instanceof FormData) {
+    opts.body = body;
+  }
+  const res = await fetch(url.toString(), opts);
+  if (res.status === 401) {
+    setSyncStatus('error', 'Token expired — reconnect');
+    localStorage.removeItem('rq_token');
+    return null;
+  }
+  if (!res.ok) throw new Error('Drive API error: ' + res.status);
+  if (res.status === 204) return {};
+  return res.json();
+}
+
+async function findOrCreateFile() {
+  setSyncStatus('syncing', 'Looking for your queue...');
+  try {
+    const res = await driveRequest('GET', '/drive/v3/files', null, {
+      q: `name='${FILE_NAME}' and trashed=false`,
+      spaces: 'drive', fields: 'files(id,name)'
+    });
+    if (!res) return;
+    if (res.files && res.files.length > 0) {
+      fileId = res.files[0].id;
+      await loadFromDrive();
+    } else {
+      await createFile();
+    }
+  } catch(e) {
+    setSyncStatus('error', 'Connection failed — check token');
+  }
+}
+
+async function createFile() {
+  setSyncStatus('syncing', 'Creating your queue file...');
+  try {
+    const meta = JSON.stringify({name: FILE_NAME, mimeType: 'application/json'});
+    const content = JSON.stringify({items:[], done:[]});
+    const form = new FormData();
+    form.append('metadata', new Blob([meta], {type:'application/json'}));
+    form.append('file', new Blob([content], {type:'application/json'}));
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST',
+      headers: {Authorization: 'Bearer ' + accessToken},
+      body: form
+    });
+    const data = await res.json();
+    fileId = data.id;
+    items = []; done = [];
+    ready = true;
+    setSyncStatus('ok', 'Synced to Google Drive');
+    updateStats();
+  } catch(e) {
+    setSyncStatus('error', 'Failed to create file');
+  }
+}
+
+async function loadFromDrive() {
+  setSyncStatus('syncing', 'Loading your queue...');
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: {Authorization: 'Bearer ' + accessToken}
+    });
+    const data = await res.json();
+    items = data.items || [];
+    done = data.done || [];
+    ready = true;
+    setSyncStatus('ok', 'Synced · ' + new Date().toLocaleTimeString('en-IE',{hour:'2-digit',minute:'2-digit'}));
+    updateStats();
+    renderQueue();
+    renderWeek();
+  } catch(e) {
+    setSyncStatus('error', 'Failed to load data');
+  }
+}
+
+async function saveToDrive() {
+  if (!fileId || !ready) return;
+  setSyncStatus('syncing', 'Saving...');
+  try {
+    const content = JSON.stringify({items, done});
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: {Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json'},
+      body: content
+    });
+    setSyncStatus('ok', 'Synced · ' + new Date().toLocaleTimeString('en-IE',{hour:'2-digit',minute:'2-digit'}));
+  } catch(e) {
+    setSyncStatus('error', 'Save failed');
+  }
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveToDrive, 1000);
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', ['capture','queue','week'][i] === t));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(t).classList.add('active');
+  if (t === 'queue') renderQueue();
+  if (t === 'week') renderWeek();
+  if (t === 'capture') updateStats();
+}
+
+function setPriority(p) {
+  priority = p;
+  document.getElementById('pt-normal').className = 'ptag' + (p === 'normal' ? ' sel-normal' : '');
+  document.getElementById('pt-urgent').className = 'ptag' + (p === 'urgent' ? ' sel-urgent' : '');
+}
+setPriority('normal');
+
+function addItem() {
+  const t = document.getElementById('cap-title').value.trim();
+  if (!t || !ready) { if(!ready) showToast('Still loading...'); return; }
+  items.unshift({id: Date.now(), title: t, note: document.getElementById('cap-note').value.trim(), cat: document.getElementById('cap-cat').value, priority, date: new Date().toISOString()});
+  document.getElementById('cap-title').value = '';
+  document.getElementById('cap-note').value = '';
+  setPriority('normal');
+  updateStats();
+  showToast('Added to queue');
+  scheduleSave();
+}
+
+function updateStats() {
+  const ws = getWeekStart();
+  document.getElementById('s-total').textContent = items.length;
+  document.getElementById('s-urgent').textContent = items.filter(i => i.priority === 'urgent').length;
+  document.getElementById('s-done').textContent = done.filter(d => new Date(d.doneDate) >= ws).length;
+}
+
+function getWeekStart() {
+  const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - d.getDay() + 1); return d;
+}
+
+function catLabel(c) { return c==='health'?'Health & Wellness':c==='business'?'Business':'Personal'; }
+function catBadge(c) { return c==='health'?'b-health':c==='business'?'b-business':'b-personal'; }
+
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderQueue();
+}
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  const filtered = items.filter(i => filter==='all'||(filter==='urgent'&&i.priority==='urgent')||i.cat===filter);
+  if (!filtered.length) { list.innerHTML = '<div class="empty">Nothing here yet.<br>Use Capture to add topics.</div>'; return; }
+  list.innerHTML = filtered.map(i => `
+    <div class="item${i.priority==='urgent'?' urgent-item':''}">
+      <div class="item-body">
+        <div class="item-title">${esc(i.title)}</div>
+        ${i.note?`<div class="item-note">${esc(i.note)}</div>`:''}
+        <div class="item-meta">
+          <span class="badge ${catBadge(i.cat)}">${catLabel(i.cat)}</span>
+          ${i.priority==='urgent'?'<span class="badge b-urgent">Urgent</span>':''}
+          <span class="item-date">${fmt(i.date)}</span>
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" onclick="markDone(${i.id})">✓</button>
+        <button class="icon-btn" onclick="deleteItem(${i.id})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderWeek() {
+  const list = document.getElementById('week-list');
+  const week = [...items.filter(i=>i.priority==='urgent'), ...items.filter(i=>i.priority==='normal')].slice(0,8);
+  document.getElementById('week-meta').textContent = week.length + ' to review';
+  if (!week.length) { list.innerHTML = '<div class="empty">Queue is empty.<br>Great work.</div>'; return; }
+  list.innerHTML = week.map(i => `
+    <div class="week-item${i.priority==='urgent'?' urgent-item':''}">
+      <div class="week-item-body">
+        <div class="week-item-title">${esc(i.title)}</div>
+        <div class="item-meta" style="margin-top:5px">
+          <span class="badge ${catBadge(i.cat)}">${catLabel(i.cat)}</span>
+          ${i.priority==='urgent'?'<span class="badge b-urgent">Urgent</span>':''}
+        </div>
+      </div>
+      <button class="done-btn" onclick="markDone(${i.id},true)">Done</button>
+    </div>`).join('');
+}
+
+function markDone(id, fromWeek) {
+  const idx = items.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  done.unshift({...items[idx], doneDate: new Date().toISOString()});
+  items.splice(idx, 1);
+  showToast('Marked as done');
+  if (fromWeek) renderWeek(); else renderQueue();
+  updateStats();
+  scheduleSave();
+}
+
+function deleteItem(id) {
+  if (!confirm('Delete this item?')) return;
+  items = items.filter(i => i.id !== id);
+  renderQueue();
+  updateStats();
+  scheduleSave();
+}
+
+function fmt(d) { return new Date(d).toLocaleDateString('en-IE',{day:'numeric',month:'short'}); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+init();
+</script>
+</body>
+</html>
